@@ -7,6 +7,7 @@ static const string bin_header = S("\tglobal\t_start\n"
 
                                    "_exit:\n"
 
+                                   /*
                                    "\tpush\tr9\n"
                                    "\tpush\tr8\n"
                                    "\tpush\trcx\n"
@@ -19,6 +20,7 @@ static const string bin_header = S("\tglobal\t_start\n"
                                    "\tmov\trsi, rsp\n"
                                    "\tmov\trdx, 48\n"
                                    "\tsyscall\n"
+                                   */
 
                                    "\tmov\trax, 60\n"
                                    "\txor\trdi, rdi\n"
@@ -34,8 +36,8 @@ static const string bin_header = S("\tglobal\t_start\n"
                                    "\tmov\tr9, 0\n"
                                    "\tjmp\tmain\n");
 static const string operations[] = {S("mov"), S("add"), S("je"), S("jmp")};
-static const string registers[] = {S("rdi"), S("rsi"), S("rdx"),
-                                   S("rcx"), S("r8"),  S("r9")};
+static const string registers[] = {S("rdi"), S("rsi"), S("rdx"), S("rcx"),
+                                   S("r8"),  S("r9"),  S("rax")};
 
 static int emit_instr(char *loc, int n, instr ins)
 {
@@ -55,8 +57,16 @@ static int emit_instr(char *loc, int n, instr ins)
                 return snprintf(loc, n, "\tcmp\t%.*s, 0\n\tje\t%.*s\n", src.len,
                                 src.addr, dst.len, dst.addr);
         case I_JMP:
-                return snprintf(loc, n, "\t%.*s\t%.*s\n", op.len, op.addr,
-                                dst.len, dst.addr);
+                return snprintf(loc, n, "\tjmp\t%.*s\n", dst.len, dst.addr);
+        case I_PUT:
+                return snprintf(
+                    loc, n,
+                    "\tpush\trdi\n\tpush\trsi\n\tpush\trdx\n\tpush\t%.*"
+                    "s\n\tmov\trax, 1\n\tmov\trdi, 1\n\tmov\trsi, "
+                    "rsp\n\tmov\trdx, "
+                    "8\n\tsyscall\n\tpop\t%.*"
+                    "s\n\tpop\trdx\n\tpop\trsi\n\tpop\trdi\n",
+                    dst.len, dst.addr, dst.len, dst.addr);
         }
 }
 
@@ -87,6 +97,7 @@ string code_generation(arena *a, program prog)
                 loc = code.addr + code.len;
                 code.len += snprintf(loc, n, "%.*s:", label.len, label.addr);
                 if (code.len >= potential) {
+                        fprintf(stderr, "resizing\n");
                         steal(a, char, part_sz);
                         potential += part_sz;
                         code.len = rewind;

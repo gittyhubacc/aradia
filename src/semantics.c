@@ -90,6 +90,17 @@ static instr read_addmov_instr(token_string tokens, int *i)
                 exit(1);
         }
 }
+static instr read_emit_instr(token_string tokens, int *i)
+{
+        instr ins;
+        ins.type = I_PUT;
+        ins.dst = tokens.arr[(*i)++];
+        ASSERT_TOK(ins.dst, TOK_REGISTER);
+
+        ASSERT_TOK(tokens.arr[(*i)++], TOK_SEMICOLON);
+
+        return ins;
+}
 static instr read_instr(token_string tokens, int *i)
 {
         token t = tokens.arr[(*i)++];
@@ -100,9 +111,12 @@ static instr read_instr(token_string tokens, int *i)
                 return read_jmp_instr(tokens, i);
         case TOK_REGISTER:
                 return read_addmov_instr(tokens, i);
+        case TOK_EMIT:
+                return read_emit_instr(tokens, i);
         default:
                 fprintf(stderr,
-                        "line %i: expected (TOK_IF, TOK_JUMP, TOK_REGISTER) "
+                        "line %i: expected (TOK_IF, TOK_JUMP, TOK_REGISTER, "
+                        "TOK_EMIT) "
                         "got %s\n",
                         t.line_number, token_names[t.type]);
                 exit(1);
@@ -123,12 +137,12 @@ static instr_seq *read_instr_seq(arena *a, token_string tokens, int *i)
 
         // read bulk of block
         while (tokens.arr[*i].type != TOK_JUMP) {
-                steal(a, instr_seq, 1);
+                steal(a, instr, 1);
                 seq->arr[seq->len++] = read_instr(tokens, i);
         }
 
         // read last jump instruction
-        steal(a, instr_seq, 1);
+        steal(a, instr, 1);
         seq->arr[seq->len++] = read_instr(tokens, i);
 
         return seq;
@@ -136,7 +150,7 @@ static instr_seq *read_instr_seq(arena *a, token_string tokens, int *i)
 
 program semantic_analysis(arena *a, token_string tokens)
 {
-        char tmp_mem[1 * kilobyte];
+        char tmp_mem[4 * kilobyte];
         arena tmp = make_arena(tmp_mem);
 
         int i = 0;

@@ -1,0 +1,5 @@
+main:	r0 = 6278066737626506568;	# 0x57202C6F6C6C6548 'Hello, W'
+	r1 = 11138535027311; 		# 0x00000A21646C726F 'orld!   '
+	emit r0;
+	emit r1;
+	jump _exit

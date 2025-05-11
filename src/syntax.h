@@ -14,6 +14,7 @@ enum token_type {
 
         TOK_IF,
         TOK_JUMP,
+        TOK_EMIT,
 
         TOK_PLUS,
         TOK_EQUAL,

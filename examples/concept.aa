@@ -3,7 +3,10 @@ main:	r0 = 7;
 	r2 = 0;		
 	jump loop
 
-loop:	if r0 jump _exit;
+loop:	if r0 jump done;
 	r2 = r2 + r1;
 	r0 = r0 + -1;
 	jump loop
+
+done:	emit r2;
+	jump _exit

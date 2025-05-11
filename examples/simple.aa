@@ -1,0 +1,6 @@
+main:
+	r0 = 47;
+	r1 = 47;
+	r1 = r1 + r0;
+	emit r1;
+	jump _exit

@@ -8,7 +8,7 @@ const char *token_names[] = {"TOK_BROKEN",
 
                              "TOK_LABEL",    "TOK_LITERAL", "TOK_REGISTER",
 
-                             "TOK_IF",       "TOK_JUMP",
+                             "TOK_IF",       "TOK_JUMP",    "TOK_EMIT",
 
                              "TOK_PLUS",     "TOK_EQUAL",   "TOK_COLON",
                              "TOK_SEMICOLON"};
@@ -121,6 +121,33 @@ static void advance_jump(tokrecm *m, char c)
         }
 }
 
+static void advance_emit(tokrecm *m, char c)
+{
+        enum states { read_e, read_m, read_i, read_t, accepted, dead };
+        switch (m->state) {
+        case read_e:
+                m->accept = c == 'e';
+                m->state = c ? read_m : dead;
+                break;
+        case read_m:
+                m->accept = c == 'm';
+                m->state = m->accept ? read_i : dead;
+                break;
+        case read_i:
+                m->accept = c == 'i';
+                m->state = m->accept ? read_t : dead;
+                break;
+        case read_t:
+                m->accept = c == 't';
+                m->state = m->accept ? accepted : dead;
+                break;
+        case accepted:
+                m->accept = 0;
+                m->state = dead;
+                break;
+        }
+}
+
 static int is_letter(char c)
 {
         return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
@@ -195,17 +222,18 @@ static tokrecm register_m;
 
 static tokrecm if_m;
 static tokrecm jump_m;
+static tokrecm emit_m;
 
 static tokrecm plus_m;
 static tokrecm equal_m;
 static tokrecm colon_m;
 static tokrecm semicolon_m;
 
-static const int machine_count = 9;
+static const int machine_count = 10;
 
 static tokrecm *machines[] = {&label_m, &literal_m, &register_m,
 
-                              &if_m,    &jump_m,
+                              &if_m,    &jump_m,    &emit_m,
 
                               &plus_m,  &equal_m,   &colon_m,    &semicolon_m};
 
@@ -224,6 +252,7 @@ static void reset_machines()
 
         reset_machine(&if_m, 0);
         reset_machine(&jump_m, 0);
+        reset_machine(&emit_m, 0);
 
         reset_machine(&plus_m, 0);
         reset_machine(&equal_m, 0);
@@ -239,6 +268,7 @@ static void step_machines(char c)
 
         advance_if(&if_m, c);
         advance_jump(&jump_m, c);
+        advance_emit(&emit_m, c);
 
         advance_plus(&plus_m, c);
         advance_equal(&equal_m, c);
@@ -314,7 +344,7 @@ static token *read_token(arena *a, string src, int *i)
 
 token_string syntactic_analysis(arena *a, string source)
 {
-        char tmp_mem[3 * kilobyte];
+        char tmp_mem[4 * kilobyte];
         arena tmp = make_arena(tmp_mem);
 
         int tok_cnt = 0;
